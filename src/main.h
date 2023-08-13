@@ -20,6 +20,7 @@ void OpenDirectory();
 int FolderCheck();
 int IsFolder();
 void GetTerminalSize();
+void DrawStatusBar();
 
 struct termios orig_termios;
 
