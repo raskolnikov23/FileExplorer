@@ -39,7 +39,7 @@ void RefreshScreen()
 
     // where to put cursor, so that entries printed at bottom
     if (*allowedEntryCount >= col.entryCount)
-        printf("\x1b[%dB\r", *rows - col.entryCount - 1);
+        printf("\x1b[%dB\r", *rows - col.entryCount - 2);
     else 
         printf("\x1b[%dB\r", *rows - *allowedEntryCount-1);    
 
@@ -49,12 +49,12 @@ void RefreshScreen()
         if (i > col.entryCount-1) break;            // break exits for loop
 
         // when window's vertical size changes
-        if (*allowedEntryCount != *rows - 1)
+        if (*allowedEntryCount != *rows - 2)
         {
             printf("\x1b[2J");                      // clears screen
             printf("\x1b[H");                       // go to top
             GetTerminalSize();
-            *allowedEntryCount = *rows - 1;
+            *allowedEntryCount = *rows - 2;
 
             return;                                 // ends RefreshScreen function
             // RefreshScreen();                     // this works better(faster) but can't get it to work
@@ -64,7 +64,7 @@ void RefreshScreen()
 
 
 
-        // usleep(100000);                                           // for debug
+        // usleep(1000000);                                         // for debug
 
         
         printf("\x1b[K\r");                                         // deletes line, returns to left side
@@ -90,7 +90,7 @@ void RefreshScreen()
     DrawStatusBar();
 
     printf("\x1b[H");                                               // go to top
-    *allowedEntryCount = *rows - 1;
+    *allowedEntryCount = *rows - 2;
     fflush(stdout);
 }
 
@@ -106,7 +106,7 @@ void Initialization()
 
     GetTerminalSize();
 
-    *allowedEntryCount = *rows - 1;
+    *allowedEntryCount = *rows - 2;
 
     col.entryCount = 0;
 
@@ -258,19 +258,9 @@ void GetTerminalSize()
 
 void DrawStatusBar()
 {
-        printf("\x1b[%dB\r", 1);                                    // move down one line
-
-    printf("\x1b[K\r");  // erase line and go to line start
-    printf("\t\x1b[7m"); // inverted line
-
-
-    // printf("\t\t\t\t\tcurrent path: %s\r", currentPath);
-    // printf("\t\t\t\t\t\t\t\tselected path: %s\r", selectedPath);
-    // printf("\t\t\t\t\t\t\t\t\t\t\t\tpath count: %d\r", pathCount);
-
-    printf("\tallowedentrycount: %d", *allowedEntryCount);
-    printf("\t\t\trows: %d", *rows);
-
-
-    printf("\x1b[m\r"); // normal color text
+    printf("\x1b[%dB\r", 1);                    // move down one line
+    printf("\x1b[K\r");                         // erase line and go to line start
+    printf("\t\x1b[7m");                        // inverted line
+    printf("PATH: %s", currentPath);            // the print
+    printf("\x1b[m\r");                         // normal color text
 }
