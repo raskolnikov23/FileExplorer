@@ -270,8 +270,6 @@ void DrawStatusBar()
 {
     printf("\x1b[%dB\r", 1);                    // move down one line
     printf("\x1b[K\r");                         // erase line and go to line start
-    printf("\t\x1b[7m");                        // inverted line
-    // printf("PATH: %s", currentPath);            // the print
-        printf("aloowedentrcount: %d", *allowedEntryCount);            // the print
+    printf("\tPATH: \x1b[7m%s", currentPath);   // inverted print
     printf("\x1b[m\r");                         // normal color text
 }
