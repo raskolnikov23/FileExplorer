@@ -37,38 +37,34 @@ void RefreshScreen()
 {
     GetTerminalSize();
 
-    // where to put cursor, so that entries printed at bottom
+    /* where to put cursor, so that entries printed at bottom */ 
     if (*allowedEntryCount >= col.entryCount)
         printf("\x1b[%dB\r", *rows - col.entryCount-2);
     else 
         printf("\x1b[%dB\r", *rows - *allowedEntryCount-2);    
 
-
+    /* MAIN LOOP */
     for (int i = 0; i <= *allowedEntryCount-1; i++) 
     {
-        if (i > col.entryCount-1) break;            // break exits for loop
+        usleep(1000);                                   // for debug
 
-        // when window's vertical size changes
+        if (i > col.entryCount-1) break;                // if allowed > entry count
+
+        GetTerminalSize();
+
+        /* if window size has changed */ 
         if (*allowedEntryCount != *rows - 3)
         {
-            printf("\x1b[2J");                      // clears screen
-            printf("\x1b[H");                       // go to top
+            printf("\x1b[2J");                          // clears screen
+            printf("\x1b[H");                           // go to top
             GetTerminalSize();
             *allowedEntryCount = *rows - 3;
-
-            return;                                 // ends RefreshScreen function
-            // RefreshScreen();                     // this works better(faster) but can't get it to work
-
-
+            return;
         }
-
-
-
-        // usleep(1000000);                                         // for debug
-
         
-        printf("\x1b[K\r");                                         // deletes line, returns to left side
+        printf("\x1b[K\r");                                         // deletes line & returns
 
+        /* if line is selected */ 
         if (i == *selected[pathCount]) 
         {
             printf("\t\x1b[7m");                                    // tab and starts inverted text
@@ -80,12 +76,7 @@ void RefreshScreen()
         if (FolderCheck(i) == 0) printf("\t\x1b[4DF");              // prints F to the left of folders
 
         printf("\x1b[1B\r");                                        // move down one line
-
-        fflush(stdout);
-
     }
-
-
 
     DrawStatusBar();
 
