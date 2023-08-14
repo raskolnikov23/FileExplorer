@@ -49,12 +49,12 @@ void RefreshScreen()
         if (i > col.entryCount-1) break;            // break exits for loop
 
         // when window's vertical size changes
-        if (*allowedEntryCount != *rows - 7)
+        if (*allowedEntryCount != *rows - 1)
         {
             printf("\x1b[2J");                      // clears screen
             printf("\x1b[H");                       // go to top
             GetTerminalSize();
-            *allowedEntryCount = *rows - 7;
+            *allowedEntryCount = *rows - 1;
 
             return;                                 // ends RefreshScreen function
             // RefreshScreen();                     // this works better(faster) but can't get it to work
@@ -90,7 +90,7 @@ void RefreshScreen()
     DrawStatusBar();
 
     printf("\x1b[H");                                               // go to top
-    *allowedEntryCount = *rows - 7;
+    *allowedEntryCount = *rows - 1;
     fflush(stdout);
 }
 
@@ -106,7 +106,7 @@ void Initialization()
 
     GetTerminalSize();
 
-    *allowedEntryCount = *rows - 7;
+    *allowedEntryCount = *rows - 1;
 
     col.entryCount = 0;
 
@@ -169,7 +169,7 @@ void ProcessInput()
                             *selected[pathCount] = 0;
                             // if selected > entrycount >> scroll up;
 
-                        if (*selected[pathCount] == col.entryCount-1) // needs displayedentrycount
+                        if (*selected[pathCount] >= col.entryCount) // needs displayedentrycount
                             *selected[pathCount] -= 1;
                             break;
                             // if selected < entrycount >> scroll down;
