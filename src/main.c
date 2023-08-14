@@ -43,22 +43,27 @@ void RefreshScreen()
     else 
         printf("\x1b[%dB\r", *rows - *allowedEntryCount-2);    
 
+
     /* MAIN LOOP */
     for (int i = 0; i <= *allowedEntryCount-1; i++) 
     {
         usleep(1000);                                   // for debug
+        GetTerminalSize();
 
         if (i > col.entryCount-1) break;                // if allowed > entry count
 
-        GetTerminalSize();
 
         /* if window size has changed */ 
         if (*allowedEntryCount != *rows - 3)
         {
             printf("\x1b[2J");                          // clears screen
             printf("\x1b[H");                           // go to top
-            GetTerminalSize();
+
             *allowedEntryCount = *rows - 3;
+
+            if (*selected[pathCount] > *allowedEntryCount-1)
+                *selected[pathCount] = *allowedEntryCount-1;
+
             return;
         }
         
@@ -68,7 +73,7 @@ void RefreshScreen()
         if (i == *selected[pathCount]) 
         {
             printf("\t\x1b[7m");                                    // tab and starts inverted text
-            printf("%d %s\r", i, col.entries[i]->d_name);           // prints entry name
+            printf("%d %s\r", i+1, col.entries[i]->d_name);           // prints entry name
             printf("\x1b[m");                                       // normal text
         }
         else printf("\t%s\r", col.entries[i]->d_name);              // print name of file/folder
