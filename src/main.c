@@ -72,13 +72,25 @@ void RefreshScreen()
         /* if line is selected */ 
         if (i == *selected[pathCount]) 
         {
-            printf("\t\x1b[7m");                                    // tab and starts inverted text
-            printf("%d %s\r", i+1, col.entries[i]->d_name);           // prints entry name
+            printf("\t\t\x1b[2D\x1b[7m");                                    // tab and starts inverted text
+            printf("%s\r", col.entries[i]->d_name);           // prints entry name
             printf("\x1b[m");                                       // normal text
         }
-        else printf("\t%s\r", col.entries[i]->d_name);              // print name of file/folder
+        else printf("\t\t\x1b[2D%s\r", col.entries[i]->d_name);              // print name of file/folder
             
-        if (FolderCheck(i) == 0) printf("\t\x1b[4DF");              // prints F to the left of folders
+        if (i+1<10)
+        printf("\t\x1b[1C%d\r", i+1); 
+        else
+        printf("\t%d\r", i+1); 
+
+        if (FolderCheck(i) == 0) printf("\t\x1b[4DF\r");              // prints F to the left of folders
+
+
+
+
+
+
+        // if (col.entries[i]->d_type == DT_REG) printf("\t\x1b[4DX");
 
         printf("\x1b[1B\r");                                        // move down one line
     }
@@ -191,6 +203,7 @@ void ProcessInput()
                             OpenDirectory(selectedPath);
                             break;
                         }
+                        else return;
 
                     case 'D':
                         if (pathCount > 0) 
@@ -209,11 +222,7 @@ void ProcessInput()
 
 void OpenDirectory(char* dir)
 {
-    // if previous entries exist
-    if (col.entryCount)
-    {
-        printf("\x1b[2J");
-    }
+    if (col.entryCount) printf("\x1b[2J");              // if previous entries exist
 
     selected[pathCount] = malloc(999);
     col.entryCount = 0;
@@ -225,32 +234,44 @@ void OpenDirectory(char* dir)
         return;
     }
 
-    currentPath = malloc(100);                       // OTHERWISE SEGM FAULT
+    currentPath = malloc(100);                       
     strcpy(currentPath, dir);                        // update path
     paths[pathCount] = malloc(100);
     strcpy(paths[pathCount], currentPath);
 
     while (col.entries[col.entryCount] = readdir(col.folder))                   // copy entries
-        if (col.entries[col.entryCount]->d_name[0] != '.') col.entryCount++;    // filter hidden folders
+    {
+        if (col.entries[col.entryCount] == NULL) return;
+
+        if (col.entries[col.entryCount]->d_name[0] != '.' &&                // filter hidden folders
+            col.entries[col.entryCount]->d_type != DT_LNK)                   // filter symbolic links
+            col.entryCount++;  
+             
+
+             // NEED TO FILTER OUT FOLDERS WITH NOTHING INSIDE
+
+                                     
+    }
 }
 
 int FolderCheck(int entry)
 {
-    char* entryPath;                    // maybe there is a better way to find path of entry
-    entryPath = malloc(100);            // how much should be allocated?                          
+    char* entryPath;                    
+    entryPath = malloc(100);                                   
     strcpy(entryPath, currentPath);
     strcat(entryPath, "/");
     strcat(entryPath, col.entries[entry]->d_name);
     
-    if (IsFolder(entryPath)) return 0;
-    else return 1;
+    if (IsFolder(entryPath) == 0) return 0;
+    if (IsFolder(entryPath) == 1) return 1;
 }
 
 int IsFolder(const char* path)
 {
     struct stat path_stat;
-    stat(path, &path_stat);
-    return S_ISDIR(path_stat.st_mode);
+    if (stat(path, &path_stat) == 0)
+        if S_ISDIR(path_stat.st_mode)
+            return 0;
 }
 
 void GetTerminalSize()
