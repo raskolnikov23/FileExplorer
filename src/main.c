@@ -39,22 +39,22 @@ void RefreshScreen()
 
     // where to put cursor, so that entries printed at bottom
     if (*allowedEntryCount >= col.entryCount)
-        printf("\x1b[%dB\r", *rows - col.entryCount - 2);
+        printf("\x1b[%dB\r", *rows - col.entryCount-2);
     else 
-        printf("\x1b[%dB\r", *rows - *allowedEntryCount-1);    
+        printf("\x1b[%dB\r", *rows - *allowedEntryCount-2);    
 
 
-    for (int i = 0; i <= *allowedEntryCount; i++) 
+    for (int i = 0; i <= *allowedEntryCount-1; i++) 
     {
         if (i > col.entryCount-1) break;            // break exits for loop
 
         // when window's vertical size changes
-        if (*allowedEntryCount != *rows - 2)
+        if (*allowedEntryCount != *rows - 3)
         {
             printf("\x1b[2J");                      // clears screen
             printf("\x1b[H");                       // go to top
             GetTerminalSize();
-            *allowedEntryCount = *rows - 2;
+            *allowedEntryCount = *rows - 3;
 
             return;                                 // ends RefreshScreen function
             // RefreshScreen();                     // this works better(faster) but can't get it to work
@@ -90,7 +90,7 @@ void RefreshScreen()
     DrawStatusBar();
 
     printf("\x1b[H");                                               // go to top
-    *allowedEntryCount = *rows - 2;
+    *allowedEntryCount = *rows - 3;
     fflush(stdout);
 }
 
@@ -106,7 +106,7 @@ void Initialization()
 
     GetTerminalSize();
 
-    *allowedEntryCount = *rows - 2;
+    *allowedEntryCount = *rows - 3;
 
     col.entryCount = 0;
 
@@ -162,18 +162,31 @@ void ProcessInput()
                 {
                     case 'A': 
                     case 'B': 
-                        if (seq[1] == 'A') *selected[pathCount] -= 1;
-                        else *selected[pathCount] += 1;
+                             if (seq[1] == 'A') *selected[pathCount] -= 1;
+                        else if (seq[1] == 'B') *selected[pathCount] += 1;
 
                         if (*selected[pathCount] < 0) 
                             *selected[pathCount] = 0;
                             // if selected > entrycount >> scroll up;
 
-                        if (*selected[pathCount] >= col.entryCount) // needs displayedentrycount
-                            *selected[pathCount] -= 1;
-                            break;
+
+
+                        // if allowed > entries, check folder entry count
+                        if (*allowedEntryCount > col.entryCount)
+                        {
+                            if (*selected[pathCount] >= col.entryCount)
+                                *selected[pathCount] -= 1;
+                        }
+                        // if allowed = or < entries, check allowed
+                        else 
+                        {
+                            if (*selected[pathCount] >= *allowedEntryCount)
+                                *selected[pathCount] -= 1;
+                        }
+
+
+                        break;
                             // if selected < entrycount >> scroll down;
-                        
 
                     case 'C':
                         if (FolderCheck(*selected[pathCount]) == 0) 
@@ -221,11 +234,8 @@ void OpenDirectory(char* dir)
     paths[pathCount] = malloc(100);
     strcpy(paths[pathCount], currentPath);
 
-    while (col.entries[col.entryCount] = readdir(col.folder))              // copy entries
-    {
+    while (col.entries[col.entryCount] = readdir(col.folder))                   // copy entries
         if (col.entries[col.entryCount]->d_name[0] != '.') col.entryCount++;    // filter hidden folders
-
-    }
 }
 
 int FolderCheck(int entry)
@@ -261,6 +271,7 @@ void DrawStatusBar()
     printf("\x1b[%dB\r", 1);                    // move down one line
     printf("\x1b[K\r");                         // erase line and go to line start
     printf("\t\x1b[7m");                        // inverted line
-    printf("PATH: %s", currentPath);            // the print
+    // printf("PATH: %s", currentPath);            // the print
+        printf("aloowedentrcount: %d", *allowedEntryCount);            // the print
     printf("\x1b[m\r");                         // normal color text
 }
