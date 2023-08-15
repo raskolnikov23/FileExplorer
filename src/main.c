@@ -6,12 +6,12 @@
 int** selected;
 char* selectedPath;
 char** paths;
-int pathCount = 0;
+int pathDepth;
 
 int* rows;
 int* cols;
 int* allowedEntryCount;
-int displayedEntryCount = 0;
+int displayedEntryCount;
 
 #define ENTRYPOINT_DIRECTORY "/"
 
@@ -25,10 +25,10 @@ int main()
         ProcessInput();
         RefreshScreen();  
 
-        
+        /* selected entry path updater */
         strcpy(selectedPath, currentPath);
-        if (pathCount > 0) selectedPath = strcat(selectedPath, "/");          // divide with slash only if not at base dir
-        int sel = *selected[pathCount];
+        if (pathDepth > 0) selectedPath = strcat(selectedPath, "/");        // divide with slash only if not at basedir
+        int sel = *selected[pathDepth];
         strcat(selectedPath, col.entries[sel]->d_name);
     }
 
@@ -63,16 +63,16 @@ void RefreshScreen()
 
             *allowedEntryCount = *rows - 3;
 
-            if (*selected[pathCount] > *allowedEntryCount-1)
-                *selected[pathCount] = *allowedEntryCount-1;
+            if (*selected[pathDepth] > *allowedEntryCount-1)
+                *selected[pathDepth] = *allowedEntryCount-1;
 
             return;
         }
         
         printf("\x1b[K\r");                                         // deletes line & returns
 
-        /* if line is selected */ 
-        if (i == *selected[pathCount]) 
+        /* HIGHLIGHT entry if selected */ 
+        if (i == *selected[pathDepth]) 
         {
             printf("\t\t\x1b[2D\x1b[7m");                                    // tab and starts inverted text
             printf("%s\r", col.entries[i]->d_name);           // prints entry name
@@ -99,8 +99,6 @@ void RefreshScreen()
 
 void Initialization() 
 {
-    GetTerminalSize();
-
     /* Memory allocation */
     rows = malloc(2000);
     cols = malloc(2000);
@@ -110,6 +108,8 @@ void Initialization()
     paths = malloc(10000);
     currentPath = malloc(100);
     selectedPath = malloc(100);
+
+    GetTerminalSize();
 
     *allowedEntryCount = *rows - 3;
 
@@ -164,11 +164,11 @@ void ProcessInput()
                 {
                     case 'A': 
                     case 'B': 
-                             if (seq[1] == 'A') *selected[pathCount] -= 1;
-                        else if (seq[1] == 'B') *selected[pathCount] += 1;
+                             if (seq[1] == 'A') *selected[pathDepth] -= 1;
+                        else if (seq[1] == 'B') *selected[pathDepth] += 1;
 
-                        if (*selected[pathCount] < 0) 
-                            *selected[pathCount] = 0;
+                        if (*selected[pathDepth] < 0) 
+                            *selected[pathDepth] = 0;
                             // if selected > entrycount >> scroll up;
 
 
@@ -176,14 +176,14 @@ void ProcessInput()
                         // if allowed > entries, check folder entry count
                         if (*allowedEntryCount > col.entryCount)
                         {
-                            if (*selected[pathCount] >= col.entryCount)
-                                *selected[pathCount] -= 1;
+                            if (*selected[pathDepth] >= col.entryCount)
+                                *selected[pathDepth] -= 1;
                         }
                         // if allowed = or < entries, check allowed
                         else 
                         {
-                            if (*selected[pathCount] >= *allowedEntryCount)
-                                *selected[pathCount] -= 1;
+                            if (*selected[pathDepth] >= *allowedEntryCount)
+                                *selected[pathDepth] -= 1;
                         }
 
 
@@ -191,19 +191,20 @@ void ProcessInput()
                             // if selected < entrycount >> scroll down;
 
                     case 'C':
-                        if (IsDirectory(*selected[pathCount]) == 0) 
+                        if (IsDirectory(*selected[pathDepth]) == 0) 
                         {
-                            pathCount++;
+                            pathDepth++;
+                            paths[pathDepth] = malloc(100);
                             OpenDirectory(selectedPath);
                             break;
                         }
                         else return;
 
                     case 'D':
-                        if (pathCount > 0) 
+                        if (pathDepth > 0) 
                         {
-                            OpenDirectory(paths[pathCount-1]);
-                            pathCount--;
+                            OpenDirectory(paths[pathDepth-1]);
+                            pathDepth--;
                             break;
                         }
                 }
@@ -216,9 +217,10 @@ void ProcessInput()
 
 void OpenDirectory(char* dir)
 {
+    if (pathDepth == 0) paths[pathDepth] = malloc(100);
     if (col.entryCount) printf("\x1b[2J");              // if previous entries exist
 
-    selected[pathCount] = malloc(999);
+    selected[pathDepth] = malloc(999);
     col.entryCount = 0;
     col.folder = opendir(dir);
 
@@ -246,10 +248,10 @@ void OpenDirectory(char* dir)
     }
     // if (col.entryCount == 0) return;
 
-        currentPath = malloc(100);                       
-    strcpy(currentPath, dir);                        // update path
-    paths[pathCount] = malloc(100);
-    strcpy(paths[pathCount], currentPath);
+    /* update path */
+    strcpy(currentPath, dir);                        
+    
+    strcpy(paths[pathDepth], currentPath);      // what is the difference?
 }
 
 int IsDirectory(int entry) 
