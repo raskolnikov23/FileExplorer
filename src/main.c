@@ -196,6 +196,7 @@ void ProcessInput()
                         if (pathDepth > 0) 
                         {
                             OpenDirectory(paths[pathDepth-1]);
+                            *selected[pathDepth] = 0;
                             pathDepth--;
                             break;
                         }
