@@ -3,17 +3,16 @@
 
 
 
-int** selected;
-char* selectedPath;
-char** paths;
-int pathDepth;
+int** selected;                 // stores selection index of parent directories
+char* selectedPath;             // currently highlighted entry's path
+char** paths;                   // stores paths in order for successful ascension
+int pathDepth;                  // amount of subdirectories
+int* rows;                      // terminal window row count
+int* cols;                      // terminal window col count
+int* allowedEntryCount;         // how many entries fit on screen
 
-int* rows;
-int* cols;
-int* allowedEntryCount;
-int displayedEntryCount;
 
-#define ENTRYPOINT_DIRECTORY "/"
+#define ENTRYPOINT_DIRECTORY "/"    // starting directory of program
 
 int main() 
 {
@@ -49,7 +48,7 @@ void RefreshScreen()
         if (i > dir.entryCount-1) break;                // if allowed > entry count
 
 
-        /* if window size has changed */ 
+        /* if window height has changed */ 
         if (*allowedEntryCount != *rows - 3)
         {
             printf("\x1b[2J");                          // clears screen
@@ -196,18 +195,18 @@ void ProcessInput()
                         if (pathDepth > 0) 
                         {
                             OpenDirectory(paths[pathDepth-1]);
-                            *selected[pathDepth] = 0;
+                            *selected[pathDepth] = 0;               // reset pointer at this depth
                             pathDepth--;
                             break;
                         }
                 }
 
                 
-                /* selected entry path updater */
-                strcpy(selectedPath, paths[pathDepth]);
+                /* selected (highlighted) entry path updater */
+                strcpy(selectedPath, paths[pathDepth]);                             // reinit with current dir
                 if (pathDepth != 0) selectedPath = strcat(selectedPath, "/");       // divide with slash only if not at basedir
                 int selectedNum = *selected[pathDepth];                             // number of currently selected entry in the specified depth
-                strcat(selectedPath, dir.entries[selectedNum]->d_name);
+                strcat(selectedPath, dir.entries[selectedNum]->d_name);             // append name of file
             }
         }
 
@@ -230,19 +229,14 @@ void OpenDirectory(char* path)
         return;
     }
 
-    while ((dir.entries[dir.entryCount] = readdir(dir.folder)) != NULL)                   // copy entries
+    while ((dir.entries[dir.entryCount] = readdir(dir.folder)) != NULL)       // copy entries
     {
-        if (dir.entries[dir.entryCount]->d_namlen == NULL) return;
-        // if (dir.entries[dir.entryCount]->d_reclen == 0) return;
-
         if (dir.entries[dir.entryCount]->d_name[0] != '.' &&                // filter hidden folders
             dir.entries[dir.entryCount]->d_type != DT_LNK)                   // filter symbolic links
-            dir.entryCount++;  
-             
-             // NEED TO FILTER OUT FOLDERS WITH NOTHING INSIDE                          
+            dir.entryCount++;                         
     }
 
-    /* update path */                
+    /* update current path */                
     strcpy(paths[pathDepth], path);
 }
 
@@ -273,6 +267,6 @@ void DrawStatusBar()
 {
     printf("\x1b[%dB\r", 1);                    // move down one line
     printf("\x1b[K\r");                         // erase line and go to line start
-    printf("\tPATH: \x1b[7m%s", paths[pathDepth]);   // inverted print
+    printf("\tPATH: \x1b[7m%s", selectedPath);   // inverted print
     printf("\x1b[m\r");                         // normal color text
 }
