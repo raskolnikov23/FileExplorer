@@ -13,6 +13,7 @@ int* cols;
 int* allowedEntryCount;
 int displayedEntryCount = 0;
 
+#define ENTRYPOINT_DIRECTORY "/"
 
 int main() 
 {
@@ -24,7 +25,7 @@ int main()
         ProcessInput();
         RefreshScreen();  
 
-        selectedPath = malloc(100);
+        
         strcpy(selectedPath, currentPath);
         if (pathCount > 0) selectedPath = strcat(selectedPath, "/");          // divide with slash only if not at base dir
         int sel = *selected[pathCount];
@@ -98,6 +99,9 @@ void RefreshScreen()
 
 void Initialization() 
 {
+    GetTerminalSize();
+
+    /* Memory allocation */
     rows = malloc(2000);
     cols = malloc(2000);
     allowedEntryCount = malloc(2000);
@@ -105,15 +109,11 @@ void Initialization()
     selected = malloc(999);
     paths = malloc(10000);
     currentPath = malloc(100);
-
-    GetTerminalSize();
+    selectedPath = malloc(100);
 
     *allowedEntryCount = *rows - 3;
 
-    col.entryCount = 0;
-
-    currentPath = "/";
-    OpenDirectory("/");                                 // base dir
+    OpenDirectory(ENTRYPOINT_DIRECTORY);     // Entry point of the Program
 }
 
 void ExitProgram() 
@@ -265,7 +265,6 @@ int IsDirectory(int entry)
         if S_ISDIR(path_stat.st_mode)
             return 0;
 }
-
 
 void GetTerminalSize()
 {

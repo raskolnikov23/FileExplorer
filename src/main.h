@@ -38,5 +38,5 @@ enum controls {
     ARROW_DOWN
 };
 
-char* currentPath = "";
+char* currentPath;
 // char* selectedPath;
