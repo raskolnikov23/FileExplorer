@@ -23,13 +23,13 @@ void DrawStatusBar();
 
 struct termios orig_termios;
 
-struct column {
+struct directory {
     int entryCount;
     struct dirent **entries;
     DIR *folder;
 };
 
-struct column col;
+struct directory dir;
 
 enum controls {
     ARROW_LEFT = 1000,
