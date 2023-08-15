@@ -13,6 +13,7 @@ int* cols;
 int* allowedEntryCount;
 int displayedEntryCount = 0;
 
+
 int main() 
 {
     TerminalSetup();
@@ -78,19 +79,12 @@ void RefreshScreen()
         }
         else printf("\t\t\x1b[2D%s\r", col.entries[i]->d_name);              // print name of file/folder
             
-        if (i+1<10)
-        printf("\t\x1b[1C%d\r", i+1); 
-        else
-        printf("\t%d\r", i+1); 
+        if (i + 1 < 10) printf("\t\x1b[1C%d\r", i+1); 
+        else printf("\t%d\r", i+1); 
 
-        if (FolderCheck(i) == 0) printf("\t\x1b[4DF\r");              // prints F to the left of folders
+        if (IsDirectory(i) == 0) printf("\t\x1b[4DF\r");              // prints F to the left of folders
 
 
-
-
-
-
-        // if (col.entries[i]->d_type == DT_REG) printf("\t\x1b[4DX");
 
         printf("\x1b[1B\r");                                        // move down one line
     }
@@ -197,7 +191,7 @@ void ProcessInput()
                             // if selected < entrycount >> scroll down;
 
                     case 'C':
-                        if (FolderCheck(*selected[pathCount]) == 0) 
+                        if (IsDirectory(*selected[pathCount]) == 0) 
                         {
                             pathCount++;
                             OpenDirectory(selectedPath);
@@ -234,14 +228,12 @@ void OpenDirectory(char* dir)
         return;
     }
 
-    currentPath = malloc(100);                       
-    strcpy(currentPath, dir);                        // update path
-    paths[pathCount] = malloc(100);
-    strcpy(paths[pathCount], currentPath);
 
-    while (col.entries[col.entryCount] = readdir(col.folder))                   // copy entries
+
+    while ((col.entries[col.entryCount] = readdir(col.folder)) != NULL)                   // copy entries
     {
-        if (col.entries[col.entryCount] == NULL) return;
+        if (col.entries[col.entryCount]->d_namlen == NULL) return;
+        // if (col.entries[col.entryCount]->d_reclen == 0) return;
 
         if (col.entries[col.entryCount]->d_name[0] != '.' &&                // filter hidden folders
             col.entries[col.entryCount]->d_type != DT_LNK)                   // filter symbolic links
@@ -252,27 +244,28 @@ void OpenDirectory(char* dir)
 
                                      
     }
+    // if (col.entryCount == 0) return;
+
+        currentPath = malloc(100);                       
+    strcpy(currentPath, dir);                        // update path
+    paths[pathCount] = malloc(100);
+    strcpy(paths[pathCount], currentPath);
 }
 
-int FolderCheck(int entry)
+int IsDirectory(int entry) 
 {
     char* entryPath;                    
     entryPath = malloc(100);                                   
     strcpy(entryPath, currentPath);
     strcat(entryPath, "/");
     strcat(entryPath, col.entries[entry]->d_name);
-    
-    if (IsFolder(entryPath) == 0) return 0;
-    if (IsFolder(entryPath) == 1) return 1;
-}
 
-int IsFolder(const char* path)
-{
     struct stat path_stat;
-    if (stat(path, &path_stat) == 0)
+    if (stat(entryPath, &path_stat) == 0)
         if S_ISDIR(path_stat.st_mode)
             return 0;
 }
+
 
 void GetTerminalSize()
 {

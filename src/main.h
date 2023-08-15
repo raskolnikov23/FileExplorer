@@ -17,8 +17,7 @@ void TerminalSetup();
 void ProgramLoop();
 void ProcessInput();
 void OpenDirectory();
-int FolderCheck();
-int IsFolder();
+int IsDirectory();
 void GetTerminalSize();
 void DrawStatusBar();
 
