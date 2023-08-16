@@ -1,16 +1,13 @@
 #include "main.h"
-#include <sys/ioctl.h>
 
-
-
+char** paths;                   // stores paths in order for successful ascension
 int** selected;                 // stores selection index of parent directories
 char* selectedPath;             // currently highlighted entry's path
-char** paths;                   // stores paths in order for successful ascension
-int pathDepth;                  // amount of subdirectories
+int pathDepth;                  // current subdirectory level
 int* rows;                      // terminal window row count
 int* cols;                      // terminal window col count
 int* allowedEntryCount;         // how many entries fit on screen
-
+char* entryPath;                // for storing path of currently processed entry
 
 #define ENTRYPOINT_DIRECTORY "/"    // starting directory of program
 
@@ -32,14 +29,11 @@ void RefreshScreen()
 {
     GetTerminalSize();
 
-    /* where to put cursor, so that entries printed at bottom */ 
-    if (*allowedEntryCount >= dir.entryCount)
-        printf("\x1b[%dB\r", *rows - dir.entryCount-2);
-    else 
-        printf("\x1b[%dB\r", *rows - *allowedEntryCount-2);    
+    /* at which row we start printing */ 
+    if (*allowedEntryCount >= dir.entryCount) printf("\x1b[%dB\r", *rows - dir.entryCount-2);
+    else printf("\x1b[%dB\r", *rows - *allowedEntryCount-2);    
 
-
-    /* MAIN LOOP */
+    /* print & refresh entries on screen */
     for (int i = 0; i <= *allowedEntryCount-1; i++) 
     {
         usleep(1000);                                   // for debug
@@ -47,19 +41,19 @@ void RefreshScreen()
 
         if (i > dir.entryCount-1) break;                // if allowed > entry count
 
-
-        /* if window height has changed */ 
-        if (*allowedEntryCount != *rows - 3)
+        /* if window height has changed */
+        if (*allowedEntryCount != *rows - 3)             
         {
-            printf("\x1b[2J");                          // clears screen
-            printf("\x1b[H");                           // go to top
+            printf("\x1b[2J");                                  // clear screen
+            printf("\x1b[H");                                   // go to top left
 
-            *allowedEntryCount = *rows - 3;
+            *allowedEntryCount = *rows - 3;                     // update displayed entry count
 
-            if (*selected[pathDepth] > *allowedEntryCount-1)
+            /* if selected is out of bounds */
+            if (*selected[pathDepth] > *allowedEntryCount-1)   
                 *selected[pathDepth] = *allowedEntryCount-1;
 
-            return;
+            return;                                                 // end function
         }
         
         printf("\x1b[K\r");                                         // deletes line & returns
@@ -67,18 +61,17 @@ void RefreshScreen()
         /* HIGHLIGHT entry if selected */ 
         if (i == *selected[pathDepth]) 
         {
-            printf("\t\t\x1b[2D\x1b[7m");                                    // tab and starts inverted text
-            printf("%s\r", dir.entries[i]->d_name);           // prints entry name
+            printf("\t\t\x1b[2D\x1b[7m");                           // tab and starts inverted text
+            printf("%s\r", dir.entries[i]->d_name);                 // prints entry name
             printf("\x1b[m");                                       // normal text
         }
-        else printf("\t\t\x1b[2D%s\r", dir.entries[i]->d_name);              // print name of file/folder
-            
-        if (i + 1 < 10) printf("\t\x1b[1C%d\r", i+1); 
+        else printf("\t\t\x1b[2D%s\r", dir.entries[i]->d_name);     // print name of file/folder
+        
+        /* print entry index */
+        if (i + 1 < 10) printf("\t\x1b[1C%d\r", i+1);               
         else printf("\t%d\r", i+1); 
 
-        if (IsDirectory(i) == 0) printf("\t\x1b[4DF\r");              // prints F to the left of folders
-
-
+        if (IsDirectory(i) == 0) printf("\t\x1b[4DF\r");            // prints F to the left of folders
 
         printf("\x1b[1B\r");                                        // move down one line
     }
@@ -93,13 +86,16 @@ void RefreshScreen()
 void Initialization() 
 {
     /* Memory allocation */
-    rows = malloc(2000);
-    cols = malloc(2000);
-    allowedEntryCount = malloc(2000);
-    dir.entries = malloc(10000);                        
-    selected = malloc(999);
+    rows = malloc(1000);
+    cols = malloc(1000);
+    allowedEntryCount = malloc(1000);
+    dir.entries = malloc(1000);                        
+    selected = malloc(1000);
     paths = malloc(1000);
-    selectedPath = malloc(100);
+    selectedPath = malloc(1000);
+    entryPath = malloc(1000);
+    pathDepth = 0;
+    
 
     GetTerminalSize();
 
@@ -161,35 +157,27 @@ void ProcessInput()
 
                         if (*selected[pathDepth] < 0) 
                             *selected[pathDepth] = 0;
-                            // if selected > entrycount >> scroll up;
 
-
-
-                        // if allowed > entries, check folder entry count
                         if (*allowedEntryCount > dir.entryCount)
                         {
                             if (*selected[pathDepth] >= dir.entryCount)
                                 *selected[pathDepth] -= 1;
                         }
-                        // if allowed = or < entries, check allowed
                         else 
                         {
                             if (*selected[pathDepth] >= *allowedEntryCount)
                                 *selected[pathDepth] -= 1;
                         }
-
-
                         break;
-                            // if selected < entrycount >> scroll down;
 
                     case 'C':
                         if (IsDirectory(*selected[pathDepth]) == 0) 
                         {
                             pathDepth++;
                             OpenDirectory(selectedPath);
-                            break;
                         }
                         else return;
+                        break;
 
                     case 'D':
                         if (pathDepth > 0) 
@@ -202,7 +190,7 @@ void ProcessInput()
                 }
 
                 
-                /* selected (highlighted) entry path updater */
+                /* update selected path after every arrow press */
                 strcpy(selectedPath, paths[pathDepth]);                             // reinit with current dir
                 if (pathDepth != 0) selectedPath = strcat(selectedPath, "/");       // divide with slash only if not at basedir
                 int selectedNum = *selected[pathDepth];                             // number of currently selected entry in the specified depth
@@ -218,11 +206,11 @@ void OpenDirectory(char* path)
 {
     if (paths[pathDepth] == NULL) paths[pathDepth] = malloc(100);           // allocate to depth pointer when descending
     if (selected[pathDepth] == NULL) selected[pathDepth] = malloc(100);     // allocate to selection pointer when descending
+
     if (dir.entryCount) printf("\x1b[2J");                                  // clear screen if previous entries exist
-
     dir.entryCount = 0;
-    dir.folder = opendir(path);
 
+    dir.folder = opendir(path);
     if (dir.folder == NULL) 
     {
         perror("Unable to read path");
@@ -241,11 +229,9 @@ void OpenDirectory(char* path)
 }
 
 int IsDirectory(int entry) 
-{
-    char* entryPath;                    
-    entryPath = malloc(100);                                   
+{                    
     strcpy(entryPath, paths[pathDepth]);
-    strcat(entryPath, "/");
+    if (pathDepth > 0) strcat(entryPath, "/");
     strcat(entryPath, dir.entries[entry]->d_name);
 
     struct stat path_stat;
@@ -265,8 +251,23 @@ void GetTerminalSize()
 
 void DrawStatusBar()
 {
-    printf("\x1b[%dB\r", 1);                    // move down one line
-    printf("\x1b[K\r");                         // erase line and go to line start
-    printf("\tPATH: \x1b[7m%s", selectedPath);   // inverted print
-    printf("\x1b[m\r");                         // normal color text
+    /* displayed path's length according to terminal width */ 
+    char displayedPath[200];  
+    strcpy(displayedPath, paths[pathDepth]);
+    displayedPath[*cols - 20] = '\0';       
+
+    int one = strlen(paths[pathDepth]);
+    int two = strlen(&displayedPath);
+
+    if (one > two)
+    {
+        displayedPath[*cols - 20] = '.';
+        displayedPath[*cols - 19] = '.';
+        displayedPath[*cols - 18] = '\0';
+    }
+
+    printf("\x1b[%dB\r", 1);                        // move down one line
+    printf("\x1b[K\r");                             // erase line and go to line start
+    printf("\tPATH: \x1b[7m%s", displayedPath);     // inverted print
+    printf("\x1b[m\r");                             // normal color text
 }

@@ -7,8 +7,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-
+#include <sys/ioctl.h>
 
 void RefreshScreen();
 void Initialization();
@@ -21,19 +20,11 @@ int IsDirectory();
 void GetTerminalSize();
 void DrawStatusBar();
 
-struct termios orig_termios;
-
 struct directory {
     int entryCount;
     struct dirent **entries;
-    DIR *folder;
+    DIR *folder; 
 };
 
+struct termios orig_termios;
 struct directory dir;
-
-enum controls {
-    ARROW_LEFT = 1000,
-    ARROW_RIGHT,
-    ARROW_UP,
-    ARROW_DOWN
-};
