@@ -40,7 +40,7 @@ void RefreshScreen()
         // usleep(1000);                                   // for debug
         GetTerminalSize();
 
-        if (i > dir.entryCount-1) break;                // if allowed > entry count
+        if (i > dir.entryCount-1) break;                
 
         /* if window height has changed */
         if (*allowedEntryCount != *rows - 3)             
@@ -75,7 +75,7 @@ void RefreshScreen()
         }
 
         /* HIGHLIGHT entry if selected */ 
-        if (i == *selected[pathDepth]) 
+        if (i + entryOffset == *selected[pathDepth]) 
         {
             printf("\t\t\x1b[2D\x1b[7m");                           // tab and starts inverted text
             printf("%s\r", displayedEntry);                 // prints entry name
@@ -167,15 +167,13 @@ void ProcessInput()
                 switch (seq[1])
                 {
                     case 'A': 
-                        *selected[pathDepth] -= 1;
-                        if (*selected[pathDepth] < 0) *selected[pathDepth] = 0;
+                        if (*selected[pathDepth] > 0) *selected[pathDepth] -= 1;
+                        if (*selected[pathDepth] < entryOffset) entryOffset--;
                         break;
 
                     case 'B': 
-                        if (*selected[pathDepth] < dir.entryCount-1)
-                        {
-                            *selected[pathDepth] += 1;
-                        }
+                        if (*selected[pathDepth] < dir.entryCount-1) *selected[pathDepth] += 1;
+                        if (*selected[pathDepth] > (*allowedEntryCount-1)+entryOffset) entryOffset++;
                         break;
 
                     case 'C':
