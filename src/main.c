@@ -58,14 +58,30 @@ void RefreshScreen()
         
         printf("\x1b[K\r");                                         // deletes line & returns
 
+        // calculate the displayedEntry,
+        // then use it for displaying
+        char displayedEntry[200];
+        strcpy(displayedEntry, dir.entries[i]->d_name);
+        displayedEntry[*cols - 20] = '\0';
+
+        int one = strlen(dir.entries[i]->d_name);
+        int two = strlen(&displayedEntry);
+
+        if (one > two)
+        {
+            displayedEntry[*cols - 20] = '.';
+            displayedEntry[*cols - 19] = '.';
+            displayedEntry[*cols - 18] = '\0';
+        }
+
         /* HIGHLIGHT entry if selected */ 
         if (i == *selected[pathDepth]) 
         {
             printf("\t\t\x1b[2D\x1b[7m");                           // tab and starts inverted text
-            printf("%s\r", dir.entries[i]->d_name);                 // prints entry name
+            printf("%s\r", displayedEntry);                 // prints entry name
             printf("\x1b[m");                                       // normal text
         }
-        else printf("\t\t\x1b[2D%s\r", dir.entries[i]->d_name);     // print name of file/folder
+        else printf("\t\t\x1b[2D%s\r", displayedEntry);     // print name of file/folder
         
         /* print entry index */
         if (i + 1 < 10) printf("\t\x1b[1C%d\r", i+1);               
