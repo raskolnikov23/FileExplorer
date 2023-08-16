@@ -8,6 +8,7 @@ int* rows;                      // terminal window row count
 int* cols;                      // terminal window col count
 int* allowedEntryCount;         // how many entries fit on screen
 char* entryPath;                // for storing path of currently processed entry
+int entryOffset;
 
 #define ENTRYPOINT_DIRECTORY "/"    // starting directory of program
 
@@ -36,7 +37,7 @@ void RefreshScreen()
     /* print & refresh entries on screen */
     for (int i = 0; i <= *allowedEntryCount-1; i++) 
     {
-        usleep(1000);                                   // for debug
+        // usleep(1000);                                   // for debug
         GetTerminalSize();
 
         if (i > dir.entryCount-1) break;                // if allowed > entry count
@@ -58,13 +59,12 @@ void RefreshScreen()
         
         printf("\x1b[K\r");                                         // deletes line & returns
 
-        // calculate the displayedEntry,
-        // then use it for displaying
+        /* calculate displayedEntry */ 
         char displayedEntry[200];
-        strcpy(displayedEntry, dir.entries[i]->d_name);
+        strcpy(displayedEntry, dir.entries[i + entryOffset]->d_name);
         displayedEntry[*cols - 20] = '\0';
 
-        int one = strlen(dir.entries[i]->d_name);
+        int one = strlen(dir.entries[i + entryOffset]->d_name);
         int two = strlen(&displayedEntry);
 
         if (one > two)
@@ -87,7 +87,7 @@ void RefreshScreen()
         if (i + 1 < 10) printf("\t\x1b[1C%d\r", i+1);               
         else printf("\t%d\r", i+1); 
 
-        if (IsDirectory(i) == 0) printf("\t\x1b[4DF\r");            // prints F to the left of folders
+        if (IsDirectory(i) == 0) printf("\t\x1b[4DF\r");            // prints F symbol to folders
 
         printf("\x1b[1B\r");                                        // move down one line
     }
@@ -167,22 +167,14 @@ void ProcessInput()
                 switch (seq[1])
                 {
                     case 'A': 
+                        *selected[pathDepth] -= 1;
+                        if (*selected[pathDepth] < 0) *selected[pathDepth] = 0;
+                        break;
+
                     case 'B': 
-                             if (seq[1] == 'A') *selected[pathDepth] -= 1;
-                        else if (seq[1] == 'B') *selected[pathDepth] += 1;
-
-                        if (*selected[pathDepth] < 0) 
-                            *selected[pathDepth] = 0;
-
-                        if (*allowedEntryCount > dir.entryCount)
+                        if (*selected[pathDepth] < dir.entryCount-1)
                         {
-                            if (*selected[pathDepth] >= dir.entryCount)
-                                *selected[pathDepth] -= 1;
-                        }
-                        else 
-                        {
-                            if (*selected[pathDepth] >= *allowedEntryCount)
-                                *selected[pathDepth] -= 1;
+                            *selected[pathDepth] += 1;
                         }
                         break;
 
@@ -225,6 +217,7 @@ void OpenDirectory(char* path)
 
     if (dir.entryCount) printf("\x1b[2J");                                  // clear screen if previous entries exist
     dir.entryCount = 0;
+    entryOffset = 0;
 
     dir.folder = opendir(path);
     if (dir.folder == NULL) 
