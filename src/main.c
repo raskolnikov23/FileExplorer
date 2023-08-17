@@ -8,7 +8,7 @@ int* rows;                      // terminal window row count
 int* cols;                      // terminal window col count
 int* allowedEntryCount;         // how many entries fit on screen
 char* entryPath;                // for storing path of currently processed entry
-int entryOffset;                // stores entry offset for scrolling
+int **entryOffset;                // stores entry offsets for scrolling
 int colBuffer;
 
 #define ENTRYPOINT_DIRECTORY "/"    // starting directory of program
@@ -72,10 +72,10 @@ void RefreshScreen()
 
         /* calculate displayedEntry */ 
         char displayedEntry[200];
-        strcpy(displayedEntry, dir.entries[i + entryOffset]->d_name);
+        strcpy(displayedEntry, dir.entries[i + *entryOffset[pathDepth]]->d_name);
         displayedEntry[*cols - 20] = '\0';
 
-        int one = strlen(dir.entries[i + entryOffset]->d_name);
+        int one = strlen(dir.entries[i + *entryOffset[pathDepth]]->d_name);
         int two = strlen(&displayedEntry);
 
         if (one > two)
@@ -86,7 +86,7 @@ void RefreshScreen()
         }
 
         /* HIGHLIGHT entry if selected */ 
-        if (i + entryOffset == *selected[pathDepth]) 
+        if (i + *entryOffset[pathDepth] == *selected[pathDepth]) 
         {
             printf("\t\t\x1b[2D\x1b[7m");                           // tab and starts inverted text
             printf("%s\r", displayedEntry);                 // prints entry name
@@ -95,10 +95,10 @@ void RefreshScreen()
         else printf("\t\t\x1b[2D%s\r", displayedEntry);     // print name of file/folder
         
         /* print entry index */
-        if (i + 1 + entryOffset < 10) printf("\t\x1b[1C%d\r", i+1 + entryOffset);               
-        else printf("\t%d\r", i+1 + entryOffset); 
+        if (i + 1 + *entryOffset[pathDepth] < 10) printf("\t\x1b[1C%d\r", i+1 + *entryOffset[pathDepth]);               
+        else printf("\t%d\r", i+1 + *entryOffset[pathDepth]); 
 
-        if (IsDirectory(i + entryOffset) == 0) printf("\t\x1b[4DF\r");            // prints F symbol to folders
+        if (IsDirectory(i + *entryOffset[pathDepth]) == 0) printf("\t\x1b[4DF\r");            // prints F symbol to folders
 
         printf("\x1b[1B\r");                                        // move down one line
     }
@@ -122,8 +122,9 @@ void Initialization()
     paths = malloc(1000);
     selectedPath = malloc(1000);
     entryPath = malloc(1000);
+    entryOffset = malloc(1000);
     pathDepth = 0;
-    
+    entryOffset[pathDepth] = malloc(1000);
 
     GetTerminalSize();
 
@@ -183,18 +184,23 @@ void ProcessInput()
                 {
                     case 'A': 
                         if (*selected[pathDepth] > 0) *selected[pathDepth] -= 1;
-                        if (*selected[pathDepth] < entryOffset) entryOffset--;
+                        if (*selected[pathDepth] < *entryOffset[pathDepth]) *entryOffset[pathDepth]-=1;
                         break;
 
                     case 'B': 
                         if (*selected[pathDepth] < dir.entryCount-1) *selected[pathDepth] += 1;
-                        if (*selected[pathDepth] > (*allowedEntryCount-1)+entryOffset) entryOffset++;
+                        if (*selected[pathDepth] > (*allowedEntryCount-1) + *entryOffset[pathDepth]) *entryOffset[pathDepth]+=1;
                         break;
 
                     case 'C':
                         if (IsDirectory(*selected[pathDepth]) == 0) 
                         {
-                            pathDepth++;
+                            pathDepth+=1;
+
+                            
+                            entryOffset[pathDepth] = malloc(1000);
+                            *entryOffset[pathDepth] = 0;    // only if descending?
+
                             OpenDirectory(selectedPath);
                         }
                         else return;
@@ -230,7 +236,6 @@ void OpenDirectory(char* path)
 
     
     dir.entryCount = 0;
-    entryOffset = 0;    // only if descending?
 
     if ((dir.folder = opendir(path)) == NULL) return;
 
