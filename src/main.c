@@ -8,7 +8,7 @@ int* rows;                      // terminal window row count
 int* cols;                      // terminal window col count
 int* allowedEntryCount;         // how many entries fit on screen
 char* entryPath;                // for storing path of currently processed entry
-int entryOffset;
+int entryOffset;                // stores entry offset for scrolling
 
 #define ENTRYPOINT_DIRECTORY "/"    // starting directory of program
 
@@ -37,9 +37,9 @@ void RefreshScreen()
     /* print & refresh entries on screen */
     for (int i = 0; i <= *allowedEntryCount-1; i++) 
     {
-        // usleep(1000);                                   // for debug
+        // usleep(10000);                                   // for debug
         GetTerminalSize();
-
+        
         if (i > dir.entryCount-1) break;                
 
         /* if window height has changed */
@@ -84,10 +84,10 @@ void RefreshScreen()
         else printf("\t\t\x1b[2D%s\r", displayedEntry);     // print name of file/folder
         
         /* print entry index */
-        if (i + 1 < 10) printf("\t\x1b[1C%d\r", i+1);               
-        else printf("\t%d\r", i+1); 
+        if (i + 1 + entryOffset < 10) printf("\t\x1b[1C%d\r", i+1 + entryOffset);               
+        else printf("\t%d\r", i+1 + entryOffset); 
 
-        if (IsDirectory(i) == 0) printf("\t\x1b[4DF\r");            // prints F symbol to folders
+        if (IsDirectory(i + entryOffset) == 0) printf("\t\x1b[4DF\r");            // prints F symbol to folders
 
         printf("\x1b[1B\r");                                        // move down one line
     }
@@ -208,31 +208,30 @@ void ProcessInput()
     }
 }
 
-void OpenDirectory(char* path)
+void OpenDirectory(char* path) 
 {
     if (paths[pathDepth] == NULL) paths[pathDepth] = malloc(100);           // allocate to depth pointer when descending
     if (selected[pathDepth] == NULL) selected[pathDepth] = malloc(100);     // allocate to selection pointer when descending
 
-    if (dir.entryCount) printf("\x1b[2J");                                  // clear screen if previous entries exist
+    
     dir.entryCount = 0;
-    entryOffset = 0;
+    entryOffset = 0;    // only if descending?
 
-    dir.folder = opendir(path);
-    if (dir.folder == NULL) 
+    if ((dir.folder = opendir(path)) == NULL)return;
+
+    while (dir.entries[dir.entryCount] = readdir(dir.folder))       // copy entries
     {
-        perror("Unable to read path");
-        return;
+        if (dir.entries[dir.entryCount]->d_name[0] != '.' &&               // filter hidden folders
+            dir.entries[dir.entryCount]->d_type != DT_LNK)                  // filter symbolic links
+                dir.entryCount++;                         
     }
 
-    while ((dir.entries[dir.entryCount] = readdir(dir.folder)) != NULL)       // copy entries
+    if (dir.entryCount == 0) 
     {
-        if (dir.entries[dir.entryCount]->d_name[0] != '.' &&                // filter hidden folders
-            dir.entries[dir.entryCount]->d_type != DT_LNK)                   // filter symbolic links
-            dir.entryCount++;                         
-    }
-
-    /* update current path */                
+        main();     
+    }  
     strcpy(paths[pathDepth], path);
+    printf("\x1b[2J");            
 }
 
 int IsDirectory(int entry) 
@@ -275,6 +274,7 @@ void DrawStatusBar()
 
     printf("\x1b[%dB\r", 1);                        // move down one line
     printf("\x1b[K\r");                             // erase line and go to line start
-    printf("\tPATH: \x1b[7m%s", displayedPath);     // inverted print
+    // printf("\tPATH: \x1b[7m%s", displayedPath);     // inverted print
+    printf("\tPATH: \x1b[7m%s", selectedPath);     // inverted print
     printf("\x1b[m\r");                             // normal color text
 }
