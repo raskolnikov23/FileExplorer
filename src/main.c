@@ -9,6 +9,7 @@ int* cols;                      // terminal window col count
 int* allowedEntryCount;         // how many entries fit on screen
 char* entryPath;                // for storing path of currently processed entry
 int entryOffset;                // stores entry offset for scrolling
+int colBuffer;
 
 #define ENTRYPOINT_DIRECTORY "/"    // starting directory of program
 
@@ -32,7 +33,9 @@ void RefreshScreen()
 
     /* at which row we start printing */ 
     if (*allowedEntryCount >= dir.entryCount) printf("\x1b[%dB\r", *rows - dir.entryCount-2);
-    else printf("\x1b[%dB\r", *rows - *allowedEntryCount-2);    
+    else printf("\x1b[%dB\r", *rows - *allowedEntryCount-2); 
+
+    
 
     /* print & refresh entries on screen */
     for (int i = 0; i <= *allowedEntryCount-1; i++) 
@@ -55,6 +58,14 @@ void RefreshScreen()
                 *selected[pathDepth] = *allowedEntryCount-1;
 
             return;                                                 // end function
+        }
+
+        if (colBuffer != *cols)
+        {
+            printf("\x1b[2J");                                  // clear screen
+            printf("\x1b[H");                                   // go to top left
+            colBuffer = *cols;
+            return;
         }
         
         printf("\x1b[K\r");                                         // deletes line & returns
@@ -96,6 +107,7 @@ void RefreshScreen()
 
     printf("\x1b[H");                                               // go to top
     *allowedEntryCount = *rows - 3;
+    colBuffer = *cols;
     fflush(stdout);
 }
 
@@ -116,7 +128,10 @@ void Initialization()
     GetTerminalSize();
 
     *allowedEntryCount = *rows - 3;
+    colBuffer = *cols;
 
+    paths[pathDepth] = malloc(1000);
+    *paths[pathDepth] = '/';
     OpenDirectory(ENTRYPOINT_DIRECTORY);     // Entry point of the Program
 }
 
@@ -217,7 +232,7 @@ void OpenDirectory(char* path)
     dir.entryCount = 0;
     entryOffset = 0;    // only if descending?
 
-    if ((dir.folder = opendir(path)) == NULL)return;
+    if ((dir.folder = opendir(path)) == NULL) return;
 
     while (dir.entries[dir.entryCount] = readdir(dir.folder))       // copy entries
     {
@@ -229,7 +244,16 @@ void OpenDirectory(char* path)
     if (dir.entryCount == 0) 
     {
         main();     
-    }  
+    }
+    if (*selectedPath == NULL)
+    {
+        /* update selected path */
+        strcpy(selectedPath, paths[pathDepth]);                             // reinit with current dir
+        if (pathDepth != 0) selectedPath = strcat(selectedPath, "/");       // divide with slash only if not at basedir
+        int selectedNum = *selected[pathDepth];                             // number of currently selected entry in the specified depth
+        strcat(selectedPath, dir.entries[selectedNum]->d_name);             // append name of file
+    }
+
     strcpy(paths[pathDepth], path);
     printf("\x1b[2J");            
 }
