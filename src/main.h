@@ -19,6 +19,7 @@ void OpenDirectory();
 int IsDirectory();
 void GetTerminalSize();
 void DrawStatusBar();
+void ClearScreen();
 
 struct directory {
     int entryCount;
