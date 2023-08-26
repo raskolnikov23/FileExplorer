@@ -12,7 +12,6 @@
 void RefreshScreen();
 void Initialization();
 void ExitProgram(); 
-void TerminalSetup();
 void ProgramLoop();
 void ProcessInput();
 void OpenDirectory();
