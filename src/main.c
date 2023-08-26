@@ -274,14 +274,10 @@ void OpenDirectory(char* path)
 void DrawStatusBar()
 {
     // displayed path's length according to terminal width  
-    char displayedPath[200];  
-    strcpy(displayedPath, paths[pathDepth]);
-    displayedPath[cols - 20] = '\0';       
+    char* displayedPath = malloc(strlen(paths[pathDepth])+1);
+    strcpy(displayedPath, paths[pathDepth]);  
 
-    int one = strlen(paths[pathDepth]);
-    int two = strlen(displayedPath);
-
-    if (one > two)
+    if ((cols - 20) < strlen(paths[pathDepth]))
     {
         displayedPath[cols - 20] = '.';
         displayedPath[cols - 19] = '.';
@@ -291,10 +287,9 @@ void DrawStatusBar()
     printf("\x1b[%dB\r", 1);                        // move down one line
     printf("\x1b[K\r");                             // erase line and go to line start
     printf("\tPATH: \x1b[7m%s", displayedPath);     // inverted print
-    // printf("\tpath\[dep-1\]: \x1b[7m%s", paths[pathDepth-1]);     // inverted print
-    // printf("\t\tallowedc: \x1b[7m%d", *allowedEntryCount-1);     // inverted print
-    // printf("\t\t\tentryoffs: \x1b[7m%d", *entryOffset[pathDepth]);     // inverted print
     printf("\x1b[m\r");                             // normal color text
+
+    free(displayedPath);
 }
 
 int IsDirectory(int entry) 
