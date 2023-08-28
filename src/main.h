@@ -22,8 +22,8 @@ void ClearScreen();
 
 struct directory {
     int entryCount;
-    struct dirent **entries;
-    DIR *folder; 
+    struct dirent** entries;
+    DIR* folder; 
 };
 
 struct termios orig_termios;
